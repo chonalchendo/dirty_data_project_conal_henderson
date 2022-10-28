@@ -1,0 +1,166 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(janitor)
+
+rwa_data <- read_csv("raw_data/rwa.csv") %>% 
+  clean_names()
+
+
+
+rwa_data_reverse <- rwa_data %>% 
+  mutate(
+    across(c(q4, q6, q8, q9, q11, q13, q15, q18, q20, q21),
+           ~ case_when(
+             . == 0 ~ 9,
+             . == 1 ~ 8,
+             . == 2 ~ 7,
+             . == 3 ~ 6,
+             . == 4 ~ 5,
+             . == 5 ~ 4,
+             . == 6 ~ 3,
+             . == 7 ~ 2,
+             . == 8 ~ 1,
+             . == 9 ~ 0)
+           )
+  )
+
+rwa_data_reverse <-  rwa_data_reverse %>% 
+  mutate(gender = 
+           case_when(
+             gender == 1 ~ "Male",
+             gender == 2 ~ "Female",
+             gender == 3 ~ "Other"
+           )
+  )
+
+  
+rwa_data_reverse %>% 
+  pivot_longer(cols = c(q3:q22), 
+               names_to = "question", 
+               values_to = "score") %>% 
+  select(question, score, gender) %>% 
+  group_by(gender) %>% 
+  drop_na() %>% 
+  summarise(avg_score = mean(score))
+  
+
+```
+
+## What’s the average RWA score for left handed people vs. right handed people 
+
+```{r}
+
+rwa_data_reverse %>% 
+  mutate(hand = 
+           case_when(
+    hand == 1 ~ "Right",
+    hand == 2 ~ "Left",
+    hand == 3 ~ "Both"
+  )
+    
+  ) %>% 
+   pivot_longer(cols = c(q3:q22), 
+               names_to = "question", 
+               values_to = "score") %>% 
+  select(question, score, hand) %>% 
+  group_by(hand) %>% 
+  drop_na() %>% 
+  summarise(avg_score = mean(score))
+  
+```
+
+## What’s the average family size for each type of childhood?
+
+```{r}
+rwa_data_reverse %>% 
+  mutate(urban = 
+           case_when(
+             urban == 1 ~ "Rural",
+             urban == 2 ~ "Suburban",
+             urban == 3 ~ "Urban"
+           )) %>% 
+  select(familysize, urban) %>% 
+  group_by(urban) %>% 
+  drop_na() %>% 
+  summarise(avg_fam = mean(familysize))
+```
+
+## What’s the average time to take the test for each education level?
+
+## 1=Less than high school, 2=High school, 3=University degree, 4=Graduate degree
+
+```{r}
+rwa_data_reverse %>% 
+  mutate(education = 
+           case_when(
+             education == 1 ~ "Less Than High School",
+             education == 2 ~ "High School",
+             education == 3 ~ "University Degree",
+             education == 4 ~ "Graduate Degree"
+           )) %>% 
+  pivot_longer(cols = c(e3:e22),
+               names_to = "question_time",
+               values_to = "time_taken") %>% 
+  select(education, question_time, time_taken) %>% 
+  group_by(education) %>% 
+  drop_na() %>% 
+  summarise(avg_time = mean(time_taken)) 
+
+
+
+rm(plot_question_4)
+  
+```
+Create a plot of results of question 4.
+
+```{r}
+rwa_data_reverse %>% 
+  mutate(education = 
+           case_when(
+             education == 1 ~ "Less Than High School",
+             education == 2 ~ "High School",
+             education == 3 ~ "University Degree",
+             education == 4 ~ "Graduate Degree"
+           )) %>% 
+  pivot_longer(cols = c(e3:e22),
+               names_to = "question_time",
+               values_to = "time_taken") %>% 
+  select(education, question_time, time_taken) %>% 
+  group_by(education) %>% 
+  drop_na() %>% 
+  mutate(avg_time = mean(time_taken)) %>% 
+  ggplot(aes(x = education, y = avg_time)) + geom_col()
+
+
+
+```
+
+## What’s the average RWA score for people aged
+## Under 18, 18 to 25, 26 to 40, 41 to 60, Over 60
+
+```{r}
+
+rwa_data_reverse %>% 
+  pivot_longer(cols = c(q3:q22), 
+               names_to = "question", 
+               values_to = "score") %>% 
+  mutate(age_range = 
+           case_when(
+             age > 60 ~ "Over 60",
+             age > 40 ~ "41 to 60",
+             age > 25 ~ "26 to 40",
+             age > 17 ~ "18 to 25",
+             TRUE ~ "Under 18"
+           )) %>% 
+  select(question, score, age_range) %>% 
+  group_by(age_range) %>% 
+  summarise(avg_score = mean(score))
+
+```
+

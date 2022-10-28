@@ -1,0 +1,436 @@
+---
+title: "Untitled"
+author: "Conal Henderson"
+date: "2022-10-26"
+output: html_document
+---
+
+## A brief introduction to the dataset
+
+The data analysed for this project were the "boing-boing-candy" datasets which consisted of three seperate tables each representing consumer ratings for over 100 differnet candies from 2015, 2016 and 2017. Each dataset was extremely messy and unstructured in the sense that they could not easily be joined without first cleaning each individually. Once cleaned to a respectable standard, the datasets were joined to begin the final cleaning stage which would provide the basis of my analysis. 
+
+## A list of any assumptions you have made
+
+1. All non-candy data could be dropped
+2. Since there was no primary and foreign keys, I could not perform a join
+3. Column names would have to be renamed
+4. I needed to unite columns together from each dataset
+5. A column to represent the year would have to be created
+6. Key data which identified age, country, state would have to be cleaned to conduct proper analysis
+
+## The steps you took to clean the data (you don’t need to write out in detail every step, but a combination of commented code chunks with surrounding overall explanations would be great).
+
+1. I loaded in the data, checked each dataset individudally to see what I could do straight away. 
+I then proceded to write a function that would clean column names and remove any empty rows and columns. 
+
+```{r}
+clean_tables <- function(data_input){ # takes in a data set
+  data_input %>% 
+    # cleans names
+    clean_names() %>% 
+    # removes empty rows and columns
+    remove_empty(which = c("rows", "cols"))
+}
+```
+
+2. I then used the compare_df_cols() function from the janitor library which allowed me to compare which columns matched and were, therefore, ready to be joined. I first compared the data from 2015 and 2016 with the intuition that once they had been joined I would then match their columns with the columns in 2017. By setting the bind_method to "rbind" and return to "mismatch" it allowed me to see the that could not be bound and would require column name changes to carry out a bind. 
+
+```{r}
+compare_df_cols(candy_2015, candy_2016, return = "mismatch", bind_method = "rbind")
+```
+
+3. Once identified some columns that would easily be changed before binding rows, I wrote a short function to rename them. 
+
+```{r}
+change_names <- function(data_input){ # takes data input
+  data_input %>% 
+    # rename the following columns present in each data set
+    rename(going_out = "are_you_going_actually_going_trick_or_treating_yourself", 
+           age = "how_old_are_you",
+           brown_globs = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers",
+           )
+}
+```
+
+
+4. I identified some columns that could not be altered by a general function, once they were renamed it allowed for a smoother process when I came to bind the datasets together. 
+
+
+```{r}
+candy_2016 <- candy_2016 %>% 
+  rename(bonkers = "bonkers_the_candy"
+         )
+
+candy_2015 <- candy_2015 %>% 
+  rename(boxo_raisins = "box_o_raisins",
+         hersheys_dark_chocolate = "dark_chocolate_hershey",
+         hersheys_kisses = "hershey_s_kissables",
+         )
+```
+
+
+5. Once I felt each dataset aligned well, I then bound them together and saved 
+them as a new variable 
+
+```{r}
+data_2015_2016 <- bind_rows(candy_2015, candy_2016)
+```
+
+6. I carried out the same process as before, starting by using the compare_df_cols() function this time comparing the new combined dataset and 2017. 
+
+```{r}
+compare_df_cols(data_2015_2016, candy_2017, return = "mismatch", bind_method = "rbind")
+```
+
+
+7. From the comparison, I could see that all column titles included a question number at the beginning in the form q[1-9] which meant almost no column matched with my new dataframe. So I proceeded to clean the column names using clean_names(), then I employed the rename_with() function combined with gsub() allowed me to identify which column had the predetermined pattern and replace it with nothing hence "". I could then reuse compare_df_cols() which indicated a few columns were named similarly but needed correcting. 
+
+```{r}
+# pattern to identify question number at beginning of column name
+pattern <- "q+[0-9]+_" 
+
+candy_2017 <- candy_2017 %>% 
+  # clean columns names
+  clean_names() %>% 
+  # rename all columns with this pattern, replace it with nothing
+  rename_with(~ gsub(pattern, "", .x)) %>% 
+  #rename common columns identified using comparison function
+  rename(x100_grand_bar = "100_grand_bar", 
+         state = "state_province_county_etc",
+         brown_globs = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers_a_k_a_mary_janes",
+         bonkers = "bonkers_the_candy"
+         )
+```
+
+
+
+8. I identifed some more columns in my combined column which when renamed would easily merge with the 2017 column upon binding them
+
+```{r}
+data_2015_2016 <- data_2015_2016 %>% 
+  rename(
+    country = "which_country_do_you_live_in",
+    day = "which_day_do_you_prefer_friday_or_sunday",
+    gender = "your_gender"
+  )
+
+```
+
+
+9. I then combined both datasets into my final fully joined dataset
+
+```{r}
+combined_candy <- bind_rows(data_2015_2016, candy_2017)
+```
+
+10. Once created a cut all data that did not relate to candy using the irrelevant 
+columns' index poisiton. I saved this new data to a new variable called, 
+specific_candy_data. 
+
+```{r}
+specific_candy_data <- select(combined_candy, -18, -33, -38, -41, -45, -56, -63,
+                              -88, -93:-95, -97:-112, -119, -130, -137:-139,
+                              -145, -148:-156)
+```
+
+
+11. I rearranged the columns to bring the more important non-candy columns to
+the front using select. I selected all the ones I wanted at the front, and then
+used everything() to then include the rest. 
+
+```{r}
+specific_candy_data <- specific_candy_data %>% 
+  # selected the columns i wanted at the front
+  select(timestamp:going_out, day:which_state_province_county_do_you_live_in,
+         internal_id:state, 
+         #once columns selected everything() calls all the after columns afterwards
+         everything())
+```
+
+12. I then changed the values of the timestamp and internal_id columns (which uniquely identified
+each row) to represent the year. 
+
+```{r}
+specific_candy_data <- specific_candy_data %>% 
+  # converted timestamp to character so perform regex function
+  mutate(timestamp = as.character(timestamp)) %>% 
+  # if string is "2015-+" then replace with 2015, else replace with "2016"
+  mutate(timestamp = if_else(str_detect(timestamp, "2015-+"), "2015", "2016")) %>% 
+  # repeat the same for the internal_id column - change to character
+  mutate(internal_id = as.character(internal_id)) %>%  
+  # if string is "90+" then replace with "2017", else replace with "NO YEAR"
+  mutate(internal_id = if_else(str_detect(internal_id, "90+"), "2017", "NO YEAR"))
+```
+
+13. Now I can merge  both timestamp and internal_id together (using unite()) 
+into a new column titled "year"
+
+```{r}
+specific_candy_data <-  specific_candy_data %>% 
+  # merge together but to not include NAs
+  unite("year", timestamp, internal_id, na.rm = TRUE) %>%
+  # replace spaces left by not including NAs with NA
+  mutate(year = na_if(year, ""))
+```
+
+
+14. The final column merge I did was to combine the state column that I had
+missed when merging the two datasets. 
+
+```{r}
+specific_candy_data <-  specific_candy_data %>% 
+  # merge together without NAs 
+  unite("state_county", state, which_state_province_county_do_you_live_in, na.rm = TRUE) %>% 
+  # replace spaces left by not including NAs with NA
+  mutate(state_county = na_if(state_county, ""))
+```
+
+15. The age column proved difficult to clean. I used a combination of different
+regex patterns which matched the variation of age entries in the dataset. 
+
+```{r}
+specific_candy_data <- specific_candy_data %>% 
+  # the first pattern removes a specific data entry - 9.0E22
+  mutate(age = str_replace_all(age, "\\.[0-9][a-zA-Z][0-9]", ""),
+         # this removes any alphabetical entries
+         age = str_replace_all(age, "[A-Za-z]+[A-Za-z]", ""),
+         # this removes any punctuation followed by a number e.g. decimal points
+         age = str_replace_all(age, "[:punct:][0-9]?", ""),
+         # this pattern removes entries with an ellipsis
+         age = str_replace_all(age, "...", ""),
+         # replaces age == 0 with NA
+         age = na_if(age, "0"))
+```
+
+16. The country column was the most difficult to clean effectively. I found it 
+hard to create a singular expression to capture all the different spellings of 
+USA/America etc. I managed with several regular expressions and some recoding of 
+ones I could not get in my expressions. I saved this final piece of cleaning to 
+a new dataframe titled 'final_candy'. 
+
+```{r}
+final_candy <- specific_candy_data %>%
+   mutate(
+     # removes punctuation
+     country = str_replace_all(country, "[:punct:]", ""),
+     # removes any numbers 
+     country = str_replace_all(country, "[0-9]+", ""),
+     # replaces different spellings of USA with USA
+     country = str_replace_all(country, "[uU][sS][aA]? *[aA-zZ]?", "USA"),
+     #replaces different spellings of United States with USA
+     country = str_replace_all(country, "[uU][nN]i?t?ed?s? [sS]t?a?t?e?s?", "USA"),
+     # replaces where country begins with a different spelling of USA with USA
+     country = if_else(str_detect(country, "^[uU][sS][aA]"), "USA", country),
+     # replaces with USA if different spellings of USA come at the end
+     country = if_else(str_detect(country, "[uU][sS][aA]$"), "USA", country),
+     # accounts for different spellings of Canada and replaces with "Canada"
+     country = str_replace_all(country, "[cC][aA][nN][aA]?[dD]?[aA]?[eE]?+`?", "Canada"),
+     # accounts for different spellings of UK - replaces with UK 
+     country = str_replace_all(country, "[uU][nN][iI][tT][eE][dD] +[kK][iI][nN][gG]?[dD][oO][mM]", "UK"),
+     # changes spellings of England to UK
+     country = str_replace_all(country, "[eE]nd?g?land", "UK"),
+     # accounts for case insensitivity for UK, replacing with "UK"
+     country = str_replace_all(country, "[uU][kK]", "UK"),
+     # I have re-coded ones that I could not get in my regular expressions 
+     country = recode(country, 
+                          "Murica" = "USA", 
+                          "USA USA" = "USA",
+                          "The Yoo Ess of Aaayyyyyy" = "USA", 
+                          "USA of America" = "USA", 
+                          "USAA" = "USA", 
+                          "USASA USA" = "USA", 
+                          "the best one USA" = "USA",
+                          "USA think but its an election year so who can really tell" = "USA",
+                          "America" = "USA", 
+                          "Units States" = "USA", 
+                          "USASA" = "USA", 
+                          "SubCanadian North America Merica" = "USA",
+                          "Merica" = "USA", 
+                          "Trumpistan" = "USA", 
+                          "USAtes" = "USA",
+                          "america" = "USA", 
+                          "USASA USASA" = "USA",
+                          "United States of America" = "USA",
+                          "The USA of America" = "USA", 
+                          "unhinged states" = "USA",
+                          "U S" = "USA", 
+                          "North Carolina" = "USA", 
+                          "Pittsburgh" = "USA",
+                          "New York" = "USA", 
+                          "California" = "USA", 
+                          "New Jersey" = "USA", 
+                          "Alaska" = "USA", 
+                          "u s a" = "USA",
+                          "AhemAmerca" = "USA",
+                          "SubCanadaian North America Merica" = "USA",
+                          "Not the USAr Canada" = "Canada",
+                          "Scotland" = "UK",
+                          "murrika" = "USA"),
+     # if country is not either UK, Canada or USA, replace with "Other"
+     country = if_else(country == c("USA", "UK", "Canada"), country, "Other")
+         )
+```
+
+17. Finally, I wrote out my cleaned data as a csv to my clean data folder, ready
+to be read in for analysis. 
+
+```{r}
+write_csv(final_candy, "clean_data/clean_candy_data.csv")
+```
+
+
+## Data Analysis
+
+Read in my cleaned data
+
+```{r}
+clean_candy <- read_csv("clean_data/clean_candy_data.csv")
+```
+
+1. What is the total number of candy ratings given across the three years?
+
+```{r}
+clean_candy %>% 
+   summarise(total_reviews = 
+    sum(across( # too the sum across all columns of reviews 
+      .cols = butterfinger:take_5, # first candy to last candy based on position
+      .fns = ~sum(!is.na(.x)) # calculated the sum of each row not including NA
+    )) # summed all sums together to get total
+  )
+```
+
+2. What was the average age of people who are going out trick or treating?
+
+```{r}
+clean_candy %>% 
+  select(age, going_out) %>% # select relevant columns
+  filter(going_out == "Yes") %>% # filter where they are going out
+  drop_na(age) %>% # drop NA values 
+  summarise(avg_age = mean(age)) # return the average age
+```
+
+
+3. What was the average age of people who are not going trick or treating?
+
+```{r}
+clean_candy %>% 
+  select(age, going_out) %>% # select columns
+  filter(going_out == "No") %>% # filter where they are not going out
+  drop_na(age) %>% # drop NA values
+  summarise(avg_age = mean(age)) # return the average age
+```
+
+
+4. For each of joy, despair and meh, which candy bar received the most of these 
+ratings?
+
+```{r}
+clean_candy %>% 
+  #pivot all candy columns to "candy" and their values to "rating"
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  select(candy, rating) %>% # select columns needed 
+  group_by(candy, rating) %>% # group by both candy and rating 
+  drop_na() %>% # drop NA values
+  summarise(total = n()) %>% # num of ratings for candy bar based on rating
+  ungroup() %>% # ungroup so to regroup 
+  group_by(rating) %>% # group by the rating now 
+  slice_max(total) # get the candy bar with the max total for each rating 
+```
+
+
+5. How many people rated Starburst as despair?
+
+```{r}
+clean_candy %>% 
+  #pivot all candy columns to "candy" and their values to "rating"
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  select(candy, rating) %>% # selecting columns needed
+  filter(candy == "starburst") %>% # filter for starburst
+  group_by(rating) %>% # group by rating 
+  summarise(n = n()) %>% #total number of ratings per rating
+  ungroup() %>% # ungroup 
+  filter(rating == "DESPAIR") # return total for despair
+```
+
+6. What was the most popular candy bar by this rating system for each gender in 
+the dataset ?
+rating system = despair -1, joy +1, meh 0 
+
+```{r}
+clean_candy %>% 
+  #pivot all candy columns to "candy" and their values to "rating"
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  # case when used to create a new column which denotes score for rating
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(candy, gender, rating_system) %>% # select columns needed
+  drop_na() %>% #drop NA values
+  group_by(gender, candy) %>% # 
+  summarise(total = sum(rating_system)) %>% # get total score for gender and candy
+  ungroup() %>% #ungroup
+  group_by(gender) %>% # group by gender to get total for each gender
+  slice_max(total) # returns most popular based on rating for each gender
+```
+
+
+7. What was the most popular candy bar in each year?
+
+```{r}
+clean_candy %>% 
+  # pivot all candy columns to "candy" and their values to "rating"
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  # case when used to create a new column which denotes score for rating
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(year, candy, rating_system) %>% # select appropriate columns
+  drop_na() %>% # drop NA values
+  group_by(candy, year) %>% # group by candy and year
+  summarise(total = sum(rating_system)) %>% # get the total for both based on rating
+  ungroup() %>% # ungroup to carry out another group by 
+  group_by(year) %>% # group by year 
+  slice_max(total) # return most popular candy bar for each year
+```
+
+8. What was the most popular candy bar by this rating for people in US, Canada, 
+ UK, and all other countries?
+
+```{r}
+clean_candy %>% 
+  # pivot all candy columns to "candy" and their values to "rating"
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>%
+  # case when used to create a new column which denotes score for rating
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(country, candy, rating_system) %>% # select columns
+  drop_na() %>% # drop NAs
+  group_by(country, candy) %>% # group by country and candy 
+  summarise(total = sum(rating_system)) %>% # sum of rating for country and candy
+  ungroup() %>% # ungroup to group by again 
+  group_by(country) %>% # group by country to get max total for each country
+  slice_max(total) # return the most popular candy per country 
+```
+
+
+
+```{r}
+```
+

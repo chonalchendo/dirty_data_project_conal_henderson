@@ -1,0 +1,123 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+1. The client only counts a valid email address as one ending in ‘.com’. 
+How many survey results have a valid email address.
+
+```{r}
+pattern <- "\\.com"
+
+distinct_dog %>% 
+  mutate(email_detect = str_detect(email, pattern)) %>% 
+  filter(email_detect == TRUE) %>% 
+  summarise(total = sum(email_detect))
+```
+
+2. What’s the average amount spent on dog food for each dog size.
+
+```{r}
+pattern_spent <- "[[:alpha:]]+"
+pattern_punct <- "[^.[:^punct:]]+"
+pattern_double_num <- " £20$"
+pattern_pound_symbol <- "£"
+
+spent_clean <- distinct_dog %>% 
+  mutate(amount_spent_on_dog_food = str_replace_all(amount_spent_on_dog_food, pattern_spent, ""),
+         amount_spent_on_dog_food = str_replace_all(amount_spent_on_dog_food, pattern_punct, ""),
+         amount_spent_on_dog_food = str_replace_all(amount_spent_on_dog_food, pattern_double_num, ""),
+         amount_spent_on_dog_food = str_replace_all(amount_spent_on_dog_food, pattern_pound_symbol, ""),
+         amount_spent_on_dog_food = as.numeric(amount_spent_on_dog_food))
+
+spent_clean
+
+spent_clean %>% 
+  distinct(dog_size)
+
+pattern_dog_size <- "[[:punct:]]"
+
+clean_size_spent <- spent_clean %>% 
+  mutate(dog_size = str_replace_all(dog_size, pattern_dog_size, ""),
+         dog_size = replace(dog_size, dog_size == c("NO", "NA", "SLL"), NA),
+         dog_size  = 
+           case_when(
+             dog_size == "Smallish" ~ "S",
+             dog_size == "Medium sized" ~ "M",
+             dog_size == "large" ~ "L",
+             TRUE ~ dog_size
+           ),
+         dog_size = na_if(dog_size, "NA"),
+         dog_size = na_if(dog_size, ""))
+
+clean_size_spent %>% 
+  select(dog_size, amount_spent_on_dog_food) %>% 
+  drop_na() %>% 
+  group_by(dog_size) %>% 
+  summarise(avg_spend = mean(amount_spent_on_dog_food))
+
+
+
+```
+
+3. For owners whose surname starts with a letter in the second half of the 
+alphabet (N onwards) what is the average age of their dog?
+
+```{r}
+full_clean_dog <- clean_size_spent %>% 
+  mutate(dog_age = if_else(str_detect(dog_age, pattern_spent), "NA", dog_age),
+         dog_age = if_else(str_detect(dog_age, pattern_punct), "NA", dog_age),
+         dog_age = str_replace_all(dog_age, "[0-9]\\+$", ""),
+         dog_age = na_if(dog_age, "NA"),
+         dog_age = as.numeric(dog_age)) %>% 
+  mutate(real_age = round(dog_age/6, digits = 0))
+
+full_clean_dog %>% 
+  select(last_name, real_age) %>% 
+  filter(str_detect(last_name, "[N-Z]")) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age))
+```
+
+4. The dog_age column is the age in dog years. If the conversion is 1 human 
+year = 6 dog years, then what is the average human age for dogs of each gender?
+
+```{r}
+full_clean_dog %>% 
+  distinct(dog_gender)
+
+pattern_female <- "[fF][eE][mM][aA]?[lL][aA]?[eE]"
+pattern_male <- "^[mM][aA][lL][eE]"
+
+cleaniest_dog <- full_clean_dog %>% 
+  mutate(dog_gender = if_else(str_detect(dog_gender, pattern_dog_size), "NA", dog_gender),
+         dog_gender = str_replace_all(dog_gender, pattern_female, "F"),
+         dog_gender = str_replace_all(dog_gender, pattern_male, "M"),
+         dog_gender = case_when(
+           dog_gender == "F" ~ "Female",
+           dog_gender == "M" ~ "Male",
+           TRUE ~ "NA"),
+         dog_gender = na_if(dog_gender, "NA")
+         )
+
+cleaniest_dog %>% 
+  select(dog_gender, real_age) %>% 
+  group_by(dog_gender) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age)) 
+
+
+```
+
+5. plot for question 4
+
+```{r}
+
+cleaniest_dog %>% 
+  select(dog_gender, real_age) %>% 
+  group_by(dog_gender) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age)) %>% 
+  ggplot(aes(dog_gender, avg_age)) + geom_point()
+```
+

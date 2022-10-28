@@ -1,0 +1,181 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Introduction to dataset
+
+The Decathlon dataset looks at data for athletes and records their performance
+in multiple track and field events. 
+
+# Assumptions
+
+1. The column names needed to be tided
+2. The row names would have to be altered to a column
+3. There might be missing values
+4. Competition column values need a name change
+5. 'Javeline' column is spelt wrong - need to change
+
+# Cleaning the data
+
+1. Imported libraries that I will use to clean my data with
+
+```{r}
+library(janitor)
+library(tidyverse)
+library(stringr)
+library(readr)
+```
+
+2. Data has been read in using read_rds, checked the names of the columns and 
+called the view() function to have a better look at the data
+
+```{r}
+decathlon <- read_rds("raw_data/decathlon.rds")
+
+names(decathlon)
+view(decathlon)
+```
+
+3. I then wrote a cleaning script which began with the clean_names() function 
+to tidy all the names to a more readable lower and snake case. 
+
+4. I renamed the miss spelled "Javeline" column, then created a new column 
+called "names" which included all athletes' names previously held in the row 
+names section.
+
+5. I then uppercased the first letter of the values in the new "names" column
+
+6. Finally, I created a pattern to fix "OlympicG" to "Olympics"
+
+```{r}
+pattern <- "[G]"
+
+decathlon <- decathlon %>% 
+  # clean column names
+  clean_names() %>% 
+  # rename "Javeline" to correct spelling of "Javelin" 
+  rename(javelin = "javeline") %>% 
+  # change the row names to a new column called "name"
+  rownames_to_column("name") %>% 
+  # mutate new column "name" to uppercase first letter of names in column
+  mutate(name = str_to_title(name)) %>% 
+  # use the pattern above to change value "OlympicG" to "Olympics"
+  mutate(competition = str_replace_all(competition, pattern, "s"))
+```
+
+
+7. I saved the clean data to clean_data folder as a csv file
+```{r}
+write_csv(decathlon, "clean_data/decathlon_clean.csv")
+```
+
+
+# Data Analysis
+
+```{r}
+library(tidyverse)
+
+library(here)
+
+here::here()
+
+decathlon <- read_csv(here("clean_data/decathlon_clean.csv"))
+names(decathlon)
+
+decathlon
+```
+
+# Who has the longest long jump seen in the data?
+
+```{r}
+
+decathlon %>% 
+  #select columns I need
+  select(name, long_jump) %>% 
+  #find the max value for long jump and associated name
+  slice_max(long_jump)
+
+# Clay - 7.96m
+```
+
+# What was the average 100m time in each competition?
+
+```{r}
+
+decathlon %>% 
+  # select the columns I need
+  select(x100m, competition) %>% 
+  # group by competition 
+  group_by(competition) %>% 
+  # find the average for each competition by calculating the mean of 100m times
+  summarise(avg_100m = mean(x100m))
+
+# Decastar - 11.17538
+# Olympics - 10.91571
+```
+
+# Who had the highest total points across both competitions? 
+
+```{r}
+
+decathlon %>% 
+  # select columns I need
+  select(name, points) %>% 
+  # group by names
+  group_by(name) %>% 
+  # get the total points for each person across both competitions
+  summarise(total_points = sum(points)) %>% 
+  # return the top athlete by total points 
+  slice_max(total_points)
+
+
+# Sebrle - 17110
+```
+
+# What was the shot-put scores for the top three competitors in each competition?
+
+```{r}
+
+decathlon %>% 
+  # return rows for only the Decastar competition
+  filter(competition == "Decastar") %>% 
+  # select name and shot put scores
+  select(name, shot_put) %>% 
+  # arrange so top score is first
+  arrange(desc(shot_put)) %>% 
+  # return the first three values
+  head(3)
+
+# Yurkov	15.19			
+# Sebrle	14.83			
+# # Karpov	14.77	
+
+# repeated the same as above except now looking at the Olympics
+decathlon %>% 
+  filter(competition == "Olympics") %>% 
+  select(name, shot_put) %>% 
+  arrange(desc(shot_put)) %>% 
+  head(3)
+
+# Sebrle	16.36			
+# Karpov	15.93			
+# Macey	15.73	
+```
+
+# What was the average points for competitors who ran the 400m in less than 
+# 50 seconds vs. those who ran the 400m in more than 50 seconds? 
+
+```{r}
+decathlon %>% 
+  # created a new logic column that states whether they ran over or under 50 secs
+  mutate(under_or_over_50 = if_else(x400m < 50, "ran under 50 secs", "ran over 50 secs")) %>%
+  # grouped by the new column
+  group_by(under_or_over_50) %>% 
+  # summarised the avg_points for those who ran under and those who ran over 50 secs
+  summarise(avg_points = mean(points))
+
+# ran over 50 secs	7727.167			
+# ran under 50 secs	8120.483	
+```
+

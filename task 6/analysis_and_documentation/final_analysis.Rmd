@@ -1,0 +1,61 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+clean_dog <- read_csv("clean_data/clean_dog.csv")
+```
+
+1. 
+
+```{r}
+pattern <- "\\.com"
+
+clean_dog %>% 
+  mutate(email_detect = str_detect(email, pattern)) %>% 
+  filter(email_detect == TRUE) %>% 
+  summarise(total = sum(email_detect))
+```
+
+2. 
+
+```{r}
+clean_dog %>% 
+  select(dog_size, amount_spent_on_dog_food) %>% 
+  drop_na() %>% 
+  group_by(dog_size) %>% 
+  summarise(avg_spend = mean(amount_spent_on_dog_food))
+```
+
+3. 
+
+```{r}
+clean_dog %>% 
+  select(last_name, real_age) %>% 
+  filter(str_detect(last_name, "[N-Z]")) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age))
+```
+
+4. 
+
+```{r}
+clean_dog %>% 
+  select(dog_gender, real_age) %>% 
+  group_by(dog_gender) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age)) 
+```
+
+5. 
+
+```{r}
+clean_dog %>% 
+  select(dog_gender, real_age) %>% 
+  group_by(dog_gender) %>% 
+  drop_na() %>% 
+  summarise(avg_age = mean(real_age)) %>% 
+  ggplot(aes(dog_gender, avg_age)) + geom_point()
+```
+

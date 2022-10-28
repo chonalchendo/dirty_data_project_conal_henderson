@@ -1,0 +1,158 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+clean_candy <- read_csv("clean_data/clean_candy_data.csv")
+
+clean_candy
+```
+
+## What is the total number of candy ratings given across the three years. 
+## (Number of candy ratings, not the number of raters. Don’t count missing values)
+
+```{r}
+view(clean_candy)
+
+clean_candy %>% 
+   summarise(total_reviews = 
+    sum(across(
+      .cols = butterfinger:take_5,
+      .fns = ~sum(!is.na(.x))
+    ))
+  )
+
+ 
+```
+
+## What was the average age of people who are going out trick or treating?
+
+```{r}
+clean_candy %>% 
+  select(age, going_out) %>% 
+  filter(going_out == "Yes") %>% 
+  drop_na(age) %>% 
+  summarise(avg_age = mean(age))
+```
+
+## What was the average age of people who are not going trick or treating?
+
+```{r}
+clean_candy %>% 
+  select(age, going_out) %>% 
+  filter(going_out == "No") %>% 
+  drop_na(age) %>% 
+  summarise(avg_age = mean(age))
+```
+
+## For each of joy, despair and meh, which candy bar received the most of these 
+## ratings?
+
+```{r}
+
+clean_candy %>% 
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  select(candy, rating) %>% 
+  group_by(candy, rating) %>% 
+  drop_na() %>% 
+  summarise(total = n()) %>% 
+  ungroup() %>% 
+  group_by(rating) %>% 
+  slice_max(total)
+  
+```
+
+## How many people rated Starburst as despair?
+
+```{r}
+clean_candy %>% 
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  select(candy, rating) %>% 
+  filter(candy == "starburst") %>% 
+  group_by(rating) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  filter(rating == "DESPAIR")
+  
+```
+
+## What was the most popular candy bar by this rating system for each gender in 
+## the dataset ?
+
+## despair -1, joy +1, meh 0 
+
+```{r}
+
+clean_candy %>% 
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(candy, gender, rating_system) %>% 
+  drop_na() %>% 
+  group_by(gender, candy) %>% 
+  summarise(total = sum(rating_system)) %>% 
+  ungroup() %>% 
+  group_by(gender) %>% 
+  slice_max(total)
+  
+
+```
+## What was the most popular candy bar in each year?
+
+```{r}
+
+clean_candy %>% 
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(year, candy, rating_system) %>% 
+  drop_na() %>% 
+  group_by(candy, year) %>% 
+  summarise(total = sum(rating_system)) %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  slice_max(total)
+  
+  
+
+```
+
+## What was the most popular candy bar by this rating for people in US, Canada, 
+## UK, and all other countries?
+
+```{r}
+
+clean_candy %>% 
+   pivot_longer(cols = butterfinger:take_5,
+               names_to = "candy",
+               values_to = "rating") %>% 
+  mutate(rating_system = case_when(
+    rating == "DESPAIR" ~ -1,
+    rating == "JOY" ~ 1,
+    rating == "MEH" ~ 0
+  )) %>% 
+  select(country, candy, rating_system) %>% 
+  drop_na() %>% 
+  group_by(country, candy) %>% 
+  summarise(total = sum(rating_system)) %>% 
+  ungroup() %>% 
+  group_by(country) %>% 
+  slice_max(total)
+
+```
+

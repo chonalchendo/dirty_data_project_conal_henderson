@@ -1,0 +1,322 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(stringr)
+
+
+names(candy_2015)
+names(candy_2016)
+names(candy_2017)
+
+
+view(candy_2015)
+view(candy_2016)
+view(candy_2017)
+
+candy_2015 %>% 
+  get_dupes()
+
+candy_2016 %>% 
+  get_dupes()
+
+candy_2017 %>% 
+  get_dupes()
+
+
+
+```
+
+```{r}
+
+# did not use these
+
+candy_2015 <- candy_2015 %>% 
+  clean_names() %>% 
+  rename(age = "how_old_are_you",
+         trick_or_treating = "are_you_going_actually_going_trick_or_treating_yourself",
+         brown_globs = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers",
+         intravenous_corn_syrup = "vials_of_pure_high_fructose_corn_syrup_for_main_lining_into_your_vein",
+         restaurant_candy = "candy_that_is_clearly_just_the_stuff_given_out_for_free_at_restaurants",
+         legal_tender = "cash_or_other_forms_of_legal_tender",
+         chick_o_sticks = "chick_o_sticks_we_don_t_know_what_that_is")
+
+candy_2016 <- candy_2016 %>% 
+  clean_names() %>% 
+  rename(age = "how_old_are_you",
+         gender = "your_gender",
+         trick_or_treating = "are_you_going_actually_going_trick_or_treating_yourself",
+         country = "which_country_do_you_live_in",
+         state = "which_state_province_county_do_you_live_in",
+         intravenous_corn_syrup = "vials_of_pure_high_fructose_corn_syrup_for_main_lining_into_your_vein",
+         restaurant_candy = "candy_that_is_clearly_just_the_stuff_given_out_for_free_at_restaurants",
+         legal_tender = "cash_or_other_forms_of_legal_tender",
+         chick_o_sticks = "chick_o_sticks_we_don_t_know_what_that_is")
+
+candy_2016 <- candy_2016 %>% 
+   rename(
+     brown_globes = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers"
+     )
+
+candy_2017 <- candy_2017 %>% 
+  clean_names()
+
+```
+
+
+```{r}
+
+clean_tables <- function(data_input){
+  data_input %>% 
+    clean_names() %>%
+    remove_empty(which = c("rows", "cols"))
+}
+```
+
+```{r}
+
+candy_2015 <- clean_tables(candy_2015)
+candy_2016 <- clean_tables(candy_2016)
+candy_2017 <- clean_tables(candy_2017)
+```
+
+```{r}
+view(candy_2015)
+view(candy_2016)
+view(candy_2017)
+
+## include this with the other 2017 cleaning
+
+pattern <- "q+[0-9]+_"
+
+candy_2017 <- candy_2017 %>% 
+  clean_names() %>% 
+  rename_with(~ gsub(pattern, "", .x)) %>% 
+  rename(x100_grand_bar = "100_grand_bar", 
+         state = "state_province_county_etc",
+         )
+
+view(candy_2015)
+view(candy_2016)
+view(candy_2017)
+
+```
+
+```{r}
+compare_df_cols(candy_2015, candy_2016, return = "match", bind_method = "bind_rows")
+```
+
+```{r}
+change_names <- function(data_input){
+  data_input %>% 
+    rename(going_out = "are_you_going_actually_going_trick_or_treating_yourself",
+           age = "how_old_are_you",
+           brown_globs = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers",
+           )
+}
+
+candy_2015 <- change_names(candy_2015)
+candy_2016 <- change_names(candy_2016)
+
+candy_2016 <- candy_2016 %>% 
+  rename(bonkers = "bonkers_the_candy"
+         )
+
+candy_2015 <- candy_2015 %>% 
+  rename(boxo_raisins = "box_o_raisins",
+         hersheys_dark_chocolate = "dark_chocolate_hershey",
+         )
+
+candy_2015 <- candy_2015 %>% 
+  rename(hersheys_kisses = "hershey_s_kissables")
+
+## dont need these two as theyre not candy so get discarded anyway
+
+candy_2016 <- candy_2016 %>% 
+  rename(dress = "that_dress_that_went_viral_a_few_years_back_when_i_first_saw_it_it_was")
+
+candy_2015 <- candy_2015 %>% 
+  rename(dress = "that_dress_that_went_viral_early_this_year_when_i_first_saw_it_it_was")
+
+
+
+```
+
+```{r}
+
+data_2015_2016 <- bind_rows(candy_2015, candy_2016)
+```
+
+```{r}
+view(data_2015_2016)
+
+compare_df_cols(data_2015_2016, candy_2017, return = "mismatch", bind_method = "rbind")
+```
+
+```{r}
+candy_2017 <- candy_2017 %>% 
+  rename(
+    brown_globs = "anonymous_brown_globs_that_come_in_black_and_orange_wrappers_a_k_a_mary_janes",
+    bonkers = "bonkers_the_candy"
+  )
+
+data_2015_2016 <- data_2015_2016 %>% 
+  rename(
+    country = "which_country_do_you_live_in",
+    day = "which_day_do_you_prefer_friday_or_sunday",
+    gender = "your_gender"
+  )
+```
+
+```{r}
+combined_candy <- bind_rows(data_2015_2016, candy_2017)
+
+names(combined_candy)
+view(combined_candy)
+```
+
+## axe all the rows that are not about candy - would give an accurate count of candy ratings
+
+```{r}
+names(combined_candy)
+
+specific_candy_data <- select(combined_candy, -18, -33, -38, -41, -45, -56, -63,
+                              -88, -93:-95, -97:-112, -119, -130, -137:-139,
+                              -145, -148:-156)
+
+names(specific_candy_data)
+
+## bring all non-candy data to beginning
+
+specific_candy_data <- specific_candy_data %>% 
+  select(timestamp:going_out, day:which_state_province_county_do_you_live_in,
+         internal_id:state, everything())
+
+## change the values of internal_id and timestamp to just the year
+
+
+specific_candy_data <- specific_candy_data %>% 
+  mutate(timestamp = as.character(timestamp)) %>% 
+  mutate(timestamp = if_else(str_detect(timestamp, "2015-+"), "2015", "2016"))
+
+# not sure I need this? 
+specific_candy_data %>% 
+  rename(year = "timestamp")
+
+specific_candy_data <- specific_candy_data %>% 
+  mutate(internal_id = as.character(internal_id)) 
+
+specific_candy_data <- specific_candy_data %>% 
+  mutate(internal_id = if_else(str_detect(internal_id, "90+"), "2017", "NO YEAR"))
+
+
+
+## merge timestamp and internal_id to create a year column
+
+specific_candy_data <-  specific_candy_data %>% 
+  unite("year", timestamp, internal_id, na.rm = TRUE) %>%
+  mutate(year = na_if(year, ""))
+## dont think i need this bit now
+  mutate(year = recode(year, "2015_NA" = "2015", "2016_NA" = "2016", "2017_NA" = "2017"))
+
+#### NEED TO FIX year to not include NA_2017 ####
+
+## merge state with which state... 
+
+specific_candy_data <-  specific_candy_data %>% 
+  unite("state_county", state, which_state_province_county_do_you_live_in, na.rm = TRUE) %>% 
+  mutate(state_county = na_if(state_county, ""))
+
+specific_candy_data
+```
+
+
+## clean the age column
+
+
+```{r}
+specific_candy_data <- specific_candy_data %>% 
+  mutate(age = str_replace_all(age, "\\.[0-9][a-zA-Z][0-9]", ""),
+         age = str_replace_all(age, "[A-Za-z]+[A-Za-z]", ""),
+         age = str_replace_all(age, "[:punct:][0-9]", ""),
+         # deleted this - dont think I need it if I put a ? in front of [0-9] above
+         age = str_replace_all(age, "[:punct:]", ""),
+         age = str_replace_all(age, "...", ""),
+         # removed this - dont think it does anything... 
+         age = str_replace_all(age, "[a-z-A-Z]", ""),
+         age = na_if(age, "0"))
+
+
+# cleaned country data
+
+final_candy <- specific_candy_data %>% 
+   mutate(country = str_replace_all(country, "[:punct:]", ""),
+         country = str_replace_all(country, "[0-9]+", ""),
+         country = str_replace_all(country, "[uU][sS][aA]? *[aA-zZ]?", "USA"),
+         country = str_replace_all(country, "[uU][nN]i?t?ed?s? [sS]t?a?t?e?s?", "USA"),
+         country = if_else(str_detect(country, "^[uU][sS][aA]"), "USA", country),
+         country = if_else(str_detect(country, "[uU][sS][aA]$"), "USA", country),
+         country = str_replace_all(country, "[cC][aA][nN][aA]?[dD]?[aA]?[eE]?+`?", "Canada"),
+         country = str_replace_all(country, "[uU][nN][iI][tT][eE][dD] +[kK][iI][nN][gG]?[dD][oO][mM]",
+                                   "UK"),
+         country = str_replace_all(country, "[eE]nd?g?land", "UK"),
+         country = str_replace_all(country, "[uU][kK]", "UK"),
+         country = recode(country, 
+                          "Murica" = "USA", 
+                          "USA USA" = "USA",
+                          "The Yoo Ess of Aaayyyyyy" = "USA", 
+                          "USA of America" = "USA", 
+                          "USAA" = "USA", 
+                          "USASA USA" = "USA", 
+                          "the best one USA" = "USA",
+                          "USA think but its an election year so who can really tell" = "USA",
+                          "America" = "USA", 
+                          "Units States" = "USA", 
+                          "USASA" = "USA", 
+                          "SubCanadian North America Merica" = "USA",
+                          "Merica" = "USA", 
+                          "Trumpistan" = "USA", 
+                          "USAtes" = "USA",
+                          "america" = "USA", 
+                          "USASA USASA" = "USA",
+                          "United States of America" = "USA",
+                          "The USA of America" = "USA", 
+                          "unhinged states" = "USA",
+                          "U S" = "USA", 
+                          "North Carolina" = "USA", 
+                          "Pittsburgh" = "USA",
+                          "New York" = "USA", 
+                          "California" = "USA", 
+                          "New Jersey" = "USA", 
+                          "Alaska" = "USA", 
+                          "u s a" = "USA",
+                          "AhemAmerca" = "USA",
+                          "SubCanadaian North America Merica" = "USA",
+                          "Not the USAr Canada" = "Canada",
+                          "Scotland" = "UK",
+                          "murrika" = "USA"),
+         country = if_else(country == c("USA", "UK", "Canada"), country, "Other")
+         )
+
+final_candy
+
+```
+
+
+## clean the country column
+
+```{r}
+specific_candy_data %>% 
+  distinct(country)
+```
+
+
+
+## count all sweet ratings/reviews
+
+- do this by summarise across the columns you want. 
