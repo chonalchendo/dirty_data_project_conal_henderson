@@ -20,8 +20,8 @@ The data analysed for this project were the "boing-boing-candy" datasets which c
 
 ## The steps you took to clean the data (you don’t need to write out in detail every step, but a combination of commented code chunks with surrounding overall explanations would be great).
 
-1. I loaded in the data, checked each dataset individudally to see what I could do straight away. 
-I then proceded to write a function that would clean column names and remove any empty rows and columns. 
+# 1. I loaded in the data, checked each dataset individudally to see what I could do straight away. 
+# I then proceeded to write a function that would clean column names and remove any empty rows and columns. 
 
 ```{r}
 clean_tables <- function(data_input){ # takes in a data set
@@ -33,13 +33,20 @@ clean_tables <- function(data_input){ # takes in a data set
 }
 ```
 
-2. I then used the compare_df_cols() function from the janitor library which allowed me to compare which columns matched and were, therefore, ready to be joined. I first compared the data from 2015 and 2016 with the intuition that once they had been joined I would then match their columns with the columns in 2017. By setting the bind_method to "rbind" and return to "mismatch" it allowed me to see the that could not be bound and would require column name changes to carry out a bind. 
+# 2. I then used the compare_df_cols() function from the janitor library which 
+# allowed me to compare which columns matched and were, therefore, ready to be 
+# joined. I first compared the data from 2015 and 2016 with the intuition that 
+# once they had been joined I would then match their columns with the columns 
+# in 2017. By setting the bind_method to "rbind" and return to "mismatch" it 
+# allowed me to see the that could not be bound and would require column name 
+#changes to carry out a bind. 
 
 ```{r}
 compare_df_cols(candy_2015, candy_2016, return = "mismatch", bind_method = "rbind")
 ```
 
-3. Once identified some columns that would easily be changed before binding rows, I wrote a short function to rename them. 
+# 3. Once identified some columns that would easily be changed before binding 
+# rows, I wrote a short function to rename them. 
 
 ```{r}
 change_names <- function(data_input){ # takes data input
@@ -53,7 +60,9 @@ change_names <- function(data_input){ # takes data input
 ```
 
 
-4. I identified some columns that could not be altered by a general function, once they were renamed it allowed for a smoother process when I came to bind the datasets together. 
+# 4. I identified some columns that could not be altered by a general function, 
+# once they were renamed it allowed for a smoother process when I came to bind 
+# the datasets together. 
 
 
 ```{r}
@@ -69,21 +78,28 @@ candy_2015 <- candy_2015 %>%
 ```
 
 
-5. Once I felt each dataset aligned well, I then bound them together and saved 
-them as a new variable 
+# 5. Once I felt each dataset aligned well, I then bound them together and saved 
+# them as a new variable 
 
 ```{r}
 data_2015_2016 <- bind_rows(candy_2015, candy_2016)
 ```
 
-6. I carried out the same process as before, starting by using the compare_df_cols() function this time comparing the new combined dataset and 2017. 
+#6. I carried out the same process as before, starting by using the 
+# compare_df_cols() function this time comparing the new combined dataset and 2017. 
 
 ```{r}
 compare_df_cols(data_2015_2016, candy_2017, return = "mismatch", bind_method = "rbind")
 ```
 
 
-7. From the comparison, I could see that all column titles included a question number at the beginning in the form q[1-9] which meant almost no column matched with my new dataframe. So I proceeded to clean the column names using clean_names(), then I employed the rename_with() function combined with gsub() allowed me to identify which column had the predetermined pattern and replace it with nothing hence "". I could then reuse compare_df_cols() which indicated a few columns were named similarly but needed correcting. 
+# 7. From the comparison, I could see that all column titles included a question 
+# number at the beginning in the form q[1-9] which meant almost no column matched 
+#with my new dataframe. So I proceeded to clean the column names using 
+# clean_names(), then I employed the rename_with() function combined with 
+#gsub() allowed me to identify which column had the predetermined pattern and 
+#replace it with nothing hence "". I could then reuse compare_df_cols() which 
+#indicated a few columns were named similarly but needed correcting. 
 
 ```{r}
 # pattern to identify question number at beginning of column name
@@ -104,7 +120,8 @@ candy_2017 <- candy_2017 %>%
 
 
 
-8. I identifed some more columns in my combined column which when renamed would easily merge with the 2017 column upon binding them
+# 8. I identifed some more columns in my combined column which when renamed 
+#would easily merge with the 2017 column upon binding them
 
 ```{r}
 data_2015_2016 <- data_2015_2016 %>% 
@@ -117,15 +134,15 @@ data_2015_2016 <- data_2015_2016 %>%
 ```
 
 
-9. I then combined both datasets into my final fully joined dataset
+#9. I then combined both datasets into my final fully joined dataset
 
 ```{r}
 combined_candy <- bind_rows(data_2015_2016, candy_2017)
 ```
 
-10. Once created a cut all data that did not relate to candy using the irrelevant 
-columns' index poisiton. I saved this new data to a new variable called, 
-specific_candy_data. 
+#10. Once created a cut all data that did not relate to candy using the irrelevant 
+# columns' index poisiton. I saved this new data to a new variable called, 
+#specific_candy_data. 
 
 ```{r}
 specific_candy_data <- select(combined_candy, -18, -33, -38, -41, -45, -56, -63,
@@ -134,9 +151,9 @@ specific_candy_data <- select(combined_candy, -18, -33, -38, -41, -45, -56, -63,
 ```
 
 
-11. I rearranged the columns to bring the more important non-candy columns to
-the front using select. I selected all the ones I wanted at the front, and then
-used everything() to then include the rest. 
+#11. I rearranged the columns to bring the more important non-candy columns to
+#the front using select. I selected all the ones I wanted at the front, and then
+#used everything() to then include the rest. 
 
 ```{r}
 specific_candy_data <- specific_candy_data %>% 
@@ -147,8 +164,8 @@ specific_candy_data <- specific_candy_data %>%
          everything())
 ```
 
-12. I then changed the values of the timestamp and internal_id columns (which uniquely identified
-each row) to represent the year. 
+#12. I then changed the values of the timestamp and internal_id columns (which 
+#uniquely identified each row) to represent the year. 
 
 ```{r}
 specific_candy_data <- specific_candy_data %>% 
@@ -162,8 +179,8 @@ specific_candy_data <- specific_candy_data %>%
   mutate(internal_id = if_else(str_detect(internal_id, "90+"), "2017", "NO YEAR"))
 ```
 
-13. Now I can merge  both timestamp and internal_id together (using unite()) 
-into a new column titled "year"
+#13. Now I can merge  both timestamp and internal_id together (using unite()) 
+#into a new column titled "year"
 
 ```{r}
 specific_candy_data <-  specific_candy_data %>% 
@@ -174,8 +191,8 @@ specific_candy_data <-  specific_candy_data %>%
 ```
 
 
-14. The final column merge I did was to combine the state column that I had
-missed when merging the two datasets. 
+#14. The final column merge I did was to combine the state column that I had
+#missed when merging the two datasets. 
 
 ```{r}
 specific_candy_data <-  specific_candy_data %>% 
@@ -185,8 +202,8 @@ specific_candy_data <-  specific_candy_data %>%
   mutate(state_county = na_if(state_county, ""))
 ```
 
-15. The age column proved difficult to clean. I used a combination of different
-regex patterns which matched the variation of age entries in the dataset. 
+#15. The age column proved difficult to clean. I used a combination of different
+#regex patterns which matched the variation of age entries in the dataset. 
 
 ```{r}
 specific_candy_data <- specific_candy_data %>% 
@@ -202,11 +219,11 @@ specific_candy_data <- specific_candy_data %>%
          age = na_if(age, "0"))
 ```
 
-16. The country column was the most difficult to clean effectively. I found it 
-hard to create a singular expression to capture all the different spellings of 
-USA/America etc. I managed with several regular expressions and some recoding of 
-ones I could not get in my expressions. I saved this final piece of cleaning to 
-a new dataframe titled 'final_candy'. 
+#16. The country column was the most difficult to clean effectively. I found it 
+#hard to create a singular expression to capture all the different spellings of 
+#USA/America etc. I managed with several regular expressions and some recoding of 
+#ones I could not get in my expressions. I saved this final piece of cleaning to 
+#a new dataframe titled 'final_candy'. 
 
 ```{r}
 final_candy <- specific_candy_data %>%
@@ -271,8 +288,8 @@ final_candy <- specific_candy_data %>%
          )
 ```
 
-17. Finally, I wrote out my cleaned data as a csv to my clean data folder, ready
-to be read in for analysis. 
+#17. Finally, I wrote out my cleaned data as a csv to my clean data folder, ready
+#to be read in for analysis. 
 
 ```{r}
 write_csv(final_candy, "clean_data/clean_candy_data.csv")
@@ -287,7 +304,7 @@ Read in my cleaned data
 clean_candy <- read_csv("clean_data/clean_candy_data.csv")
 ```
 
-1. What is the total number of candy ratings given across the three years?
+#1. What is the total number of candy ratings given across the three years?
 
 ```{r}
 clean_candy %>% 
@@ -299,7 +316,7 @@ clean_candy %>%
   )
 ```
 
-2. What was the average age of people who are going out trick or treating?
+#2. What was the average age of people who are going out trick or treating?
 
 ```{r}
 clean_candy %>% 
@@ -310,7 +327,7 @@ clean_candy %>%
 ```
 
 
-3. What was the average age of people who are not going trick or treating?
+#3. What was the average age of people who are not going trick or treating?
 
 ```{r}
 clean_candy %>% 
@@ -321,8 +338,8 @@ clean_candy %>%
 ```
 
 
-4. For each of joy, despair and meh, which candy bar received the most of these 
-ratings?
+#4. For each of joy, despair and meh, which candy bar received the most of these 
+#ratings?
 
 ```{r}
 clean_candy %>% 
@@ -340,7 +357,7 @@ clean_candy %>%
 ```
 
 
-5. How many people rated Starburst as despair?
+#5. How many people rated Starburst as despair?
 
 ```{r}
 clean_candy %>% 
@@ -356,9 +373,9 @@ clean_candy %>%
   filter(rating == "DESPAIR") # return total for despair
 ```
 
-6. What was the most popular candy bar by this rating system for each gender in 
-the dataset ?
-rating system = despair -1, joy +1, meh 0 
+#6. What was the most popular candy bar by this rating system for each gender in 
+#the dataset?
+
 
 ```{r}
 clean_candy %>% 
@@ -382,7 +399,7 @@ clean_candy %>%
 ```
 
 
-7. What was the most popular candy bar in each year?
+#7. What was the most popular candy bar in each year?
 
 ```{r}
 clean_candy %>% 
@@ -405,8 +422,8 @@ clean_candy %>%
   slice_max(total) # return most popular candy bar for each year
 ```
 
-8. What was the most popular candy bar by this rating for people in US, Canada, 
- UK, and all other countries?
+#8. What was the most popular candy bar by this rating for people in US, Canada, 
+#UK, and all other countries?
 
 ```{r}
 clean_candy %>% 

@@ -312,7 +312,7 @@ final_candy
 
 ```{r}
 specific_candy_data %>% 
-  distinct(country)
+  distinct(age)
 ```
 
 
@@ -320,3 +320,10 @@ specific_candy_data %>%
 ## count all sweet ratings/reviews
 
 - do this by summarise across the columns you want. 
+
+
+```{r}
+final_candy %>% 
+  distinct(age)
+```
+
