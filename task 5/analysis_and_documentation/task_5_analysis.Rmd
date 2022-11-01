@@ -137,7 +137,7 @@ rwa_data_reverse %>%
   mutate(avg_time = mean(time_taken)) %>% 
   ggplot(aes(x = education, y = avg_time)) + geom_col()
 
-
+rm(plot_question_4)
 
 ```
 

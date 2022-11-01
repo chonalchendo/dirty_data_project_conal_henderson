@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 ```{r}
-clean_candy <- read_csv("clean_data/clean_candy_data.csv")
+clean_candy <- read_csv(here::here("clean_data/clean_candy_data.csv"))
 
 clean_candy
 ```
